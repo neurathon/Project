@@ -38,6 +38,15 @@ dataset = read_csv(filename, names=names)
 # understanding your data using:
 #   • Descriptive statistics such as summaries.
 #   • Data visualizations such as plots with Matplotlib, ideally using convenience functions from Pandas.
+# Descriptive statistics
+# shape
+print(dataset.shape)
+# head
+print(dataset.head(20))
+# descriptions
+print(dataset.describe())
+# class distribution
+print(dataset.groupby('class').size())
 # ---------------------------------------------------------------------------------------------
 # 3. Prepare Data
 # a) Data Cleaning
