@@ -1,4 +1,4 @@
-# Python Project Template
+# Classification: Iris flowers prediction
 # -----------------------------------------------------------------------------------------------
 # 1. Prepare Problem
 #   a) Load libraries
@@ -10,6 +10,26 @@
 # where you might need to make a reduced sample of your dataset if it is too large to work with.
 # Ideally, your dataset should be small enough to build a model or create a visualization within a
 # minute, ideally 30 seconds. You can always scale up well performing models later.
+# Load Libraries
+from pandas import read_csv
+from pandas.plotting import scatter_matrix
+from matplotlib import pyplot
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+# Load Dataset
+filename = 'iris.data.csv'
+names = ['sepal-length', 'sepal-width', 'petal-length', 'petal-width', 'class']
+dataset = read_csv(filename, names=names)
 # -----------------------------------------------------------------------------------------------
 # 2. Summarize Data
 # a) Descriptive statistics
