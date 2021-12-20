@@ -1,16 +1,4 @@
 # Regression Project: Boston House Prices
-# -----------------------------------------------------------------------------------------------
-# 1. Prepare Problem
-#   a) Load libraries
-#   b) Load dataset
-# This step is about loading everything you need to start working on your problem. This includes:
-#      Python modules, classes and functions that you intend to use.
-#      Loading your dataset from CSV.
-# This is also the home of any global configuration you might need to do. It is also the place
-# where you might need to make a reduced sample of your dataset if it is too large to work with.
-# Ideally, your dataset should be small enough to build a model or create a visualization within a
-# minute, ideally 30 seconds. You can always scale up well performing models later.
-# Regression Project: Boston House Prices
 
 # Load libraries
 import numpy
@@ -41,14 +29,8 @@ from sklearn.metrics import mean_squared_error
 filename = 'housing.csv'
 names = ['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT', 'MEDV']
 dataset = read_csv(filename, delim_whitespace=True, names=names)
-# -----------------------------------------------------------------------------------------------
-# 2. Summarize Data
-# a) Descriptive statistics
-# b) Data visualizations
-# This step is about better understanding the data that you have available. This includes
-# understanding your data using:
-#   • Descriptive statistics such as summaries.
-#   • Data visualizations such as plots with Matplotlib, ideally using convenience functions from Panda
+
+# Summarize Data
 
 # Descriptive statistics
 # shape
@@ -63,7 +45,10 @@ print(dataset.describe())
 # correlation
 set_option('precision', 2)
 print(dataset.corr(method='pearson'))
+
+
 # Data visualizations
+
 # histograms
 dataset.hist()
 pyplot.show()
@@ -89,47 +74,146 @@ ax.set_xticklabels(names)
 ax.set_yticklabels(names)
 pyplot.show()
 
-# ---------------------------------------------------------------------------------------------
-# 3. Prepare Data
-# a) Data Cleaning
-# b) Feature Selection
-# c) Data Transforms
-# This step is about preparing the data in such a way that it best exposes the structure of the
-# problem and the relationships between your input attributes with the output variable. This includes tasks such as:
-#   • Cleaning data by removing duplicates, marking missing values and even imputing missing values.
-#   • Feature selection where redundant features may be removed and new features developed.
-#   • Data transforms where attributes are scaled or redistributed in order to best expose the structure of the problem later to learning algorithms.
-# --------------------------------------------------------------------------------------------
-# 4. Evaluate Algorithms
-# a) Split-out validation dataset
-# b) Test options and evaluation metric
-# c) Spot Check Algorithms
-# d) Compare Algorithms
-# This step is about finding a subset of machine learning algorithms that are good at exploiting the structure of your data 
-# (e.g. have better than average skill). This involves steps such as:
-#   • Separating out a validation dataset to use for later confirmation of the skill of your developed model.
-#   • Defining test options using scikit-learn such as cross-validation and the evaluation metric to use.
-#   • Spot-checking a suite of linear and nonlinear machine learning algorithms.
-#   • Comparing the estimated accuracy of algorithms
-# -------------------------------------------------------------------------------------------
-# 5. Improve Accuracy
-# a) Algorithm Tuning
-# b) Ensembles
-# Once you have a shortlist of machine learning algorithms, you need to get the most out of them.
-# There are two different ways to improve the accuracy of your models:
-#   • Search for a combination of parameters for each algorithm using scikit-learn that yields the best results.
-#   • Combine the prediction of multiple models into an ensemble prediction using ensemble techniques.
-# The line between this and the previous step can blur when a project becomes concrete.
-# There may be a little algorithm tuning in the previous step. And in the case of ensembles, you
-# may bring more than a shortlist of algorithms forward to combine their predictions.
-#---------------------------------------------------------------------------------------------
-# 6. Finalize Model
-# a) Predictions on validation dataset
-# b) Create standalone model on entire training dataset
-# c) Save model for later use
-# Once you have found a model that you believe can make accurate predictions on unseen data,
-# you are ready to finalize it. Finalizing a model may involve sub-tasks such as:
-#   • Using an optimal model tuned by scikit-learn to make predictions on unseen data.
-#   • Creating a standalone model using the parameters tuned by scikit-learn.
-#   • Saving an optimal model to file for later use.
-#----------------------------------------------------------------------------------------------
+# Prepare Data
+
+# Split-out validation dataset
+array = dataset.values
+X = array[:,0:13]
+Y = array[:,13]
+validation_size = 0.20
+seed = 7
+X_train, X_validation, Y_train, Y_validation = train_test_split(X, Y, test_size=validation_size, random_state=seed)
+
+# Evaluate Algorithms
+# Test options and evaluation metric
+num_folds = 10
+seed = 7
+scoring = 'neg_mean_squared_error'
+
+# Spot Check Algorithms
+models = []
+models.append(('LR', LinearRegression()))
+models.append(('LASSO', Lasso()))
+models.append(('EN', ElasticNet()))
+models.append(('KNN', KNeighborsRegressor()))
+models.append(('CART', DecisionTreeRegressor()))
+models.append(('SVR', SVR(gamma='auto')))
+
+# evaluate each model in turn
+results = []
+names = []
+for name, model in models:
+	kfold = KFold(n_splits=num_folds, random_state=seed, shuffle=True)
+	cv_results = cross_val_score(model, X_train, Y_train, cv=kfold, scoring=scoring)
+	results.append(cv_results)
+	names.append(name)
+	msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
+	print(msg)
+
+# Compare Algorithms
+fig = pyplot.figure()
+fig.suptitle('Algorithm Comparison')
+ax = fig.add_subplot(111)
+pyplot.boxplot(results)
+ax.set_xticklabels(names)
+pyplot.show()
+
+
+# Standardize the dataset
+pipelines = []
+pipelines.append(('ScaledLR', Pipeline([('Scaler', StandardScaler()),('LR', LinearRegression())])))
+pipelines.append(('ScaledLASSO', Pipeline([('Scaler', StandardScaler()),('LASSO', Lasso())])))
+pipelines.append(('ScaledEN', Pipeline([('Scaler', StandardScaler()),('EN', ElasticNet())])))
+pipelines.append(('ScaledKNN', Pipeline([('Scaler', StandardScaler()),('KNN', KNeighborsRegressor())])))
+pipelines.append(('ScaledCART', Pipeline([('Scaler', StandardScaler()),('CART', DecisionTreeRegressor())])))
+pipelines.append(('ScaledSVR', Pipeline([('Scaler', StandardScaler()),('SVR', SVR(gamma='auto'))])))
+results = []
+names = []
+for name, model in pipelines:
+	kfold = KFold(n_splits=num_folds, random_state=seed, shuffle=True)
+	cv_results = cross_val_score(model, X_train, Y_train, cv=kfold, scoring=scoring)
+	results.append(cv_results)
+	names.append(name)
+	msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
+	print(msg)
+
+# Compare Algorithms
+fig = pyplot.figure()
+fig.suptitle('Scaled Algorithm Comparison')
+ax = fig.add_subplot(111)
+pyplot.boxplot(results)
+ax.set_xticklabels(names)
+pyplot.show()
+
+
+# KNN Algorithm tuning
+scaler = StandardScaler().fit(X_train)
+rescaledX = scaler.transform(X_train)
+k_values = numpy.array([1,3,5,7,9,11,13,15,17,19,21])
+param_grid = dict(n_neighbors=k_values)
+model = KNeighborsRegressor()
+kfold = KFold(n_splits=num_folds, random_state=seed, shuffle=True)
+grid = GridSearchCV(estimator=model, param_grid=param_grid, scoring=scoring, cv=kfold)
+grid_result = grid.fit(rescaledX, Y_train)
+
+print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+means = grid_result.cv_results_['mean_test_score']
+stds = grid_result.cv_results_['std_test_score']
+params = grid_result.cv_results_['params']
+for mean, stdev, param in zip(means, stds, params):
+    print("%f (%f) with: %r" % (mean, stdev, param))
+
+
+# ensembles
+ensembles = []
+ensembles.append(('ScaledAB', Pipeline([('Scaler', StandardScaler()),('AB', AdaBoostRegressor())])))
+ensembles.append(('ScaledGBM', Pipeline([('Scaler', StandardScaler()),('GBM', GradientBoostingRegressor())])))
+ensembles.append(('ScaledRF', Pipeline([('Scaler', StandardScaler()),('RF', RandomForestRegressor(n_estimators=10))])))
+ensembles.append(('ScaledET', Pipeline([('Scaler', StandardScaler()),('ET', ExtraTreesRegressor(n_estimators=10))])))
+results = []
+names = []
+for name, model in ensembles:
+	kfold = KFold(n_splits=num_folds, random_state=seed, shuffle=True)
+	cv_results = cross_val_score(model, X_train, Y_train, cv=kfold, scoring=scoring)
+	results.append(cv_results)
+	names.append(name)
+	msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
+	print(msg)
+
+# Compare Algorithms
+fig = pyplot.figure()
+fig.suptitle('Scaled Ensemble Algorithm Comparison')
+ax = fig.add_subplot(111)
+pyplot.boxplot(results)
+ax.set_xticklabels(names)
+pyplot.show()
+
+
+# Tune scaled GBM
+scaler = StandardScaler().fit(X_train)
+rescaledX = scaler.transform(X_train)
+param_grid = dict(n_estimators=numpy.array([50,100,150,200,250,300,350,400]))
+model = GradientBoostingRegressor(random_state=seed)
+kfold = KFold(n_splits=num_folds, random_state=seed, shuffle=True)
+grid = GridSearchCV(estimator=model, param_grid=param_grid, scoring=scoring, cv=kfold)
+grid_result = grid.fit(rescaledX, Y_train)
+
+print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+means = grid_result.cv_results_['mean_test_score']
+stds = grid_result.cv_results_['std_test_score']
+params = grid_result.cv_results_['params']
+for mean, stdev, param in zip(means, stds, params):
+    print("%f (%f) with: %r" % (mean, stdev, param))
+
+
+# Make predictions on validation dataset
+
+# prepare the model
+scaler = StandardScaler().fit(X_train)
+rescaledX = scaler.transform(X_train)
+model = GradientBoostingRegressor(random_state=seed, n_estimators=400)
+model.fit(rescaledX, Y_train)
+# transform the validation dataset
+rescaledValidationX = scaler.transform(X_validation)
+predictions = model.predict(rescaledValidationX)
+print(mean_squared_error(Y_validation, predictions))
